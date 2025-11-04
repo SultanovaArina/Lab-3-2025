@@ -3,6 +3,7 @@ package functions;
 public class ArrayTabulatedFunction implements TabulatedFunction {
     private FunctionPoint[] points;
     private int size;
+    private static final double EPS = Math.ulp(1.0);
 
     public ArrayTabulatedFunction(double leftX, double rightX, int pointsCount) {
         if (leftX >= rightX) {
@@ -52,14 +53,17 @@ public class ArrayTabulatedFunction implements TabulatedFunction {
     }
 
     public double getFunctionValue(double x) {
+        if (x < getLeftDomainBorder() - EPS || x > getRightDomainBorder() + EPS)
+            return Double.NaN;
+
         for (int i = 0; i < size - 1; i++) {
             double x0 = points[i].getX();
             double x1 = points[i + 1].getX();
             double y0 = points[i].getY();
             double y1 = points[i + 1].getY();
 
-            if (x == x0) return y0;
-            if (x == x1) return y1;
+            if (Math.abs(x - x0) < EPS) return y0;
+            if (Math.abs(x - x1) < EPS) return y1;
 
             if (x > x0 && x < x1) {
                 return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
@@ -80,35 +84,33 @@ public class ArrayTabulatedFunction implements TabulatedFunction {
     public void setPoint(int index, FunctionPoint point) throws InappropriateFunctionPointException {
         checkIndex(index);
         double x = point.getX();
-        if ((index > 0 && x <= points[index - 1].getX()) ||
-                (index < size - 1 && x >= points[index + 1].getX())) {
+
+
+        if ((index > 0 && (x < points[index - 1].getX() || Math.abs(x - points[index - 1].getX()) < EPS)) ||
+                (index < size - 1 && (x > points[index + 1].getX() || Math.abs(x - points[index + 1].getX()) < EPS))) {
             throw new InappropriateFunctionPointException("Неверная координата X для данной позиции");
         }
         points[index] = new FunctionPoint(point);
     }
-
-
     public double getPointX(int index) {
         checkIndex(index);
         return points[index].getX();
     }
+
     public void setPointX(int index, double x) throws InappropriateFunctionPointException {
         checkIndex(index);
 
-        if ((index > 0 && x <= points[index - 1].getX()) ||
-                (index < size - 1 && x >= points[index + 1].getX())) {
+        if ((index > 0 && (x < points[index - 1].getX() || Math.abs(x - points[index - 1].getX()) < EPS)) ||
+                (index < size - 1 && (x > points[index + 1].getX() || Math.abs(x - points[index + 1].getX()) < EPS))) {
             throw new InappropriateFunctionPointException("Неверное значение X — нарушается порядок точек");
         }
 
         points[index].setX(x);
     }
-
-
     public double getPointY(int index) {
         checkIndex(index);
         return points[index].getY();
     }
-
     public void setPointY(int index, double y) {
         checkIndex(index);
         points[index].setY(y);
@@ -127,7 +129,7 @@ public class ArrayTabulatedFunction implements TabulatedFunction {
     public void addPoint(FunctionPoint point) throws InappropriateFunctionPointException {
         double x = point.getX();
         for (int i = 0; i < size; i++) {
-            if (points[i].getX() == x) {
+            if (Math.abs(points[i].getX() - x) < EPS) {
                 throw new InappropriateFunctionPointException("Точка с таким X уже существует");
             }
         }
@@ -138,7 +140,7 @@ public class ArrayTabulatedFunction implements TabulatedFunction {
         }
 
         int insertIndex = 0;
-        while (insertIndex < size && points[insertIndex].getX() < x) {
+        while (insertIndex < size && points[insertIndex].getX() < x && Math.abs(points[insertIndex].getX() - x) >= EPS) {
             insertIndex++;
         }
 
